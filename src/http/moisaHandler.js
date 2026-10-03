@@ -20,15 +20,7 @@ function decodeConfig(query) {
 }
 
 /**
- * Main HTTP handler used both for local `server.js` and Vercel `api/moisa.js`.
- *
- * Routes:
- *   - GET /favicon.ico                     – 32x32 browser tab icon.
- *   - GET /assets/*                       – static assets (PNG/SVG/WebP icons, logos, etc.).
- *   - GET /manifest.json                  – Stremio addon manifest (includes `logo` field).
- *   - GET /stream/:type/:id.json          – Stremio stream resource.
- *   - GET /play?infoHash=...              – proxy that resolves to a direct TorrServer URL.
- *   - GET /config or /configure           – lightweight HTML config UI.
+ * Main HTTP handler used both for local `server.js` and Vercel/production.
  */
 module.exports = async (req, res) => {
   // Derive a full URL object from the incoming request.
@@ -41,8 +33,8 @@ module.exports = async (req, res) => {
   const fullUrl = new URL(req.url, `${baseProto}://${baseHost}`);
   const baseUrl = `${baseProto}://${baseHost}`;
 
-  // Normalized path relative to the API root, e.g. "/manifest.json".
-  const pathname = fullUrl.pathname.replace(/^\/api\/moisa/, '') || '/';
+  // Normalized path relative to the API root.
+  const pathname = fullUrl.pathname.replace(/^\/api\/realdebridfree/, '').replace(/^\/api\/moisa/, '') || '/';
   const query = Object.fromEntries(fullUrl.searchParams.entries());
 
   // CORS – needed for Stremio Web.
@@ -69,7 +61,7 @@ module.exports = async (req, res) => {
       '..',
       '..',
       'assets',
-      'moisa-addon-icon-32.png'
+      'realdebridfree-addon-icon-32.png'
     );
 
     fs.stat(faviconPath, (err, stat) => {
@@ -135,7 +127,6 @@ module.exports = async (req, res) => {
 
   // ---------------------------------------------------------------------------
   // Configuration page – HTML UI used in the browser to generate the addon URL.
-  // HTML is kept in a separate file (`configure.html`) to avoid inline markup.
   // ---------------------------------------------------------------------------
 
   if (pathname === '/config' || pathname === '/configure') {
@@ -168,7 +159,7 @@ module.exports = async (req, res) => {
     const manifest = {
       ...addonInterface.manifest,
       // Use a single static 256x256 PNG icon for the addon logo.
-      logo: `${baseUrl}/assets/moisa-addon-icon-256.png`
+      logo: `${baseUrl}/assets/realdebridfree-addon-icon-256.png`
     };
     res.end(JSON.stringify(manifest));
     return;
@@ -207,9 +198,6 @@ module.exports = async (req, res) => {
       ...(cfg && typeof cfg.torrserverPass === 'string'
         ? { torrserverPass: cfg.torrserverPass }
         : {}),
-      ...(cfg && cfg.torrentioPathPrefix
-        ? { torrentioPathPrefix: cfg.torrentioPathPrefix }
-        : {}),
       _base: baseUrl
     };
 
@@ -225,7 +213,7 @@ module.exports = async (req, res) => {
       res.statusCode = 200;
       res.end(JSON.stringify(response));
     } catch (err) {
-      logError('Moisa HTTP stream handler error', {
+      logError('realdebrid free HTTP stream handler error', {
         message: err.message || String(err),
         stack: err.stack
       });
@@ -255,11 +243,6 @@ module.exports = async (req, res) => {
       return;
     }
 
-    // Keep precedence consistent with the /stream handler:
-    // 1) explicit ?torrserver=... (set by the addon when building /play URLs)
-    // 2) cfg.torrserver decoded from ?config=...
-    // 3) TORRSERVER_URL from env
-    // 4) localhost default
     const torrServerBase =
       query.torrserver ||
       (cfg && cfg.torrserver) ||
@@ -371,7 +354,7 @@ module.exports = async (req, res) => {
       res.setHeader('Location', directUrl);
       res.end();
     } catch (err) {
-      logError('Moisa HTTP play proxy error', {
+      logError('realdebrid free HTTP play proxy error', {
         message: err.message || String(err),
         stack: err.stack
       });
@@ -392,5 +375,3 @@ module.exports = async (req, res) => {
   res.statusCode = 404;
   res.end(JSON.stringify({ err: 'not found' }));
 };
-
-
