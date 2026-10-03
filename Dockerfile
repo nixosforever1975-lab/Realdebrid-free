@@ -8,8 +8,8 @@ RUN npm install --omit=dev
 COPY . .
 
 ENV PORT=8080 \
-    TORRENTIO_BASE=https://torrentio.strem.fun \
-    TORRENTIO_PATH_PREFIX=qualityfilter=threed,480p,scr,cam,unknown
+    PROVIDER_BASE=https://tfast.giize.com/da24a5d4 \
+    PROVIDER_PATH_PREFIX=""
 
 EXPOSE 8080
 
