@@ -1,7 +1,7 @@
 {
-  "name": "moisa",
+  "name": "realdebrid-free-addon",
   "version": "1.2.0",
-  "description": "Moisa - simple Stremio addon that proxies Torrentio results through TorrServer for local streaming.",
+  "description": "realdebrid free - simple Stremio addon that proxies provider results through TorrServer for local streaming.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -10,7 +10,6 @@
     "stremio",
     "addon",
     "torrent",
-    "torrentio",
     "torrserver",
     "streaming"
   ],
