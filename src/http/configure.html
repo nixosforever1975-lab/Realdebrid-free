@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Moisa – Configuration</title>
+    <title>realdebrid free – Configuration</title>
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
@@ -96,7 +96,7 @@
   </head>
   <body>
     <div class="card">
-      <h1>Moisa – Addon configuration</h1>
+      <h1>realdebrid free – Addon configuration</h1>
       <p>
         Generate a Stremio addon URL with configuration encoded as
         <code>config=&lt;base64&gt;</code>.
@@ -121,11 +121,11 @@
       </div>
 
       <div class="field">
-        <label for="torrentioPrefix">Torrentio quality filter</label>
+        <label for="providerPrefix">Provider path prefix (optional)</label>
         <input
-          id="torrentioPrefix"
+          id="providerPrefix"
           type="text"
-          placeholder="qualityfilter=threed,480p,scr,cam,unknown"
+          placeholder=""
         />
       </div>
 
@@ -140,7 +140,7 @@
       <br />
       <br />
       <p>
-        Moisa addon version: <strong>1.2.0</strong>
+        realdebrid free addon version: <strong>1.2.0</strong>
         <br />
         Collaborate or report issues on
         <a
@@ -154,7 +154,7 @@
 
     <script>
       (function () {
-        console.log('[moisa] config script loaded');
+        console.log('[realdebridfree] config script loaded');
 
         function b64Utf8(str) {
           return btoa(unescape(encodeURIComponent(str)));
@@ -178,20 +178,20 @@
           var torr = document.getElementById('torrserver');
           var user = document.getElementById('torrserverUser');
           var pass = document.getElementById('torrserverPass');
-          var prefix = document.getElementById('torrentioPrefix');
+          var prefix = document.getElementById('providerPrefix');
           var out = document.getElementById('addon-url');
           var gen = document.getElementById('generate-btn');
           var install = document.getElementById('install-btn');
 
           gen.addEventListener('click', function () {
-            console.log('[moisa] generate clicked');
+            console.log('[realdebridfree] generate clicked');
 
             var cfg = {};
             if (torr.value.trim()) cfg.torrserver = torr.value.trim();
             if (user.value) cfg.torrserverUser = user.value;
             if (user.value || pass.value) cfg.torrserverPass = pass.value;
             if (prefix.value.trim())
-              cfg.torrentioPathPrefix = prefix.value.trim();
+              cfg.providerPathPrefix = prefix.value.trim();
 
             if (!Object.keys(cfg).length) {
               alert('Enter at least one option');
@@ -204,18 +204,15 @@
           });
 
           install.addEventListener('click', function () {
-            console.log('[moisa] install clicked');
+            console.log('[realdebridfree] install clicked');
 
             if (!out.value) {
               alert('Generate the URL first');
               return;
             }
 
-            // Convert the HTTP(S) URL in the textarea into a stremio:// URL.
             var url = out.value.trim();
-            // If user pasted a stremio URL, strip the scheme first
             url = url.replace(/^stremio:\/\//i, '');
-            // Strip leading http:// or https:// if present
             url = url.replace(/^https?:\/\//i, '');
 
             window.location.href = 'stremio://' + url;
@@ -225,5 +222,3 @@
     </script>
   </body>
 </html>
-
-
