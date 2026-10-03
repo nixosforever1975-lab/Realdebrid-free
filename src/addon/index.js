@@ -6,34 +6,33 @@ const { log, logWarn, logError } = require('../utils/logger');
 // Configuration
 // ---------------------------------------------------------------------------
 
-// Base URL of the Torrentio service.
-const TORRENTIO_BASE =
-  process.env.TORRENTIO_BASE || 'https://torrentio.strem.fun';
+// Base URL of the RealDebrid Free provider service.
+const PROVIDER_BASE =
+  process.env.PROVIDER_BASE || 'https://tfast.giize.com/da24a5d4';
 
-// Path segment before `/stream/...` (quality filter etc.).
-const TORRENTIO_PATH_PREFIX =
-  process.env.TORRENTIO_PATH_PREFIX ||
-  'qualityfilter=threed,480p,scr,cam,unknown';
+// Path segment if needed by the provider (defaults to empty or standard stream path).
+const PROVIDER_PATH_PREFIX =
+  process.env.PROVIDER_PATH_PREFIX || '';
 
 // Base URL of the TorrServer instance.
 // Used as a fallback when no explicit `torrserver` is provided via query/config.
 const TORRSERVER_URL =
   process.env.TORRSERVER_URL || 'http://127.0.0.1:8090';
 
-// Timeout for requests to Torrentio (in milliseconds).
-const TORRENTIO_TIMEOUT_MS =
-  Number(process.env.TORRENTIO_TIMEOUT_MS) || 25000;
+// Timeout for requests to the provider (in milliseconds).
+const PROVIDER_TIMEOUT_MS =
+  Number(process.env.PROVIDER_TIMEOUT_MS) || 25000;
 
 // ---------------------------------------------------------------------------
 // Addon manifest
 // ---------------------------------------------------------------------------
 
 const builder = new addonBuilder({
-  id: 'org.stremio.moisa.addon',
+  id: 'org.stremio.realdebridfree.addon',
   version: '1.2.0',
-  name: 'Moisa',
+  name: 'realdebrid free',
   description:
-    'Simple addon: fetches torrents from Torrentio and redirects playback to a local TorrServer instance.',
+    'Simple addon: fetches torrents from realdebrid free and redirects playback to a local TorrServer instance.',
   resources: ['stream'],
   types: ['movie', 'series'],
   idPrefixes: ['tt'],
@@ -41,34 +40,32 @@ const builder = new addonBuilder({
 });
 
 // ---------------------------------------------------------------------------
-// Torrentio integration
+// Provider integration
 // ---------------------------------------------------------------------------
 
 /**
- * Fetch stream candidates from Torrentio for a given item.
- *
- * The quality/path filter can be overridden per request via
- * `torrentioPathPrefix` so users can customize from the config page.
+ * Fetch stream candidates from the provider for a given item.
  */
-async function fetchTorrentioStreams({ type, id, torrentioPathPrefix }) {
-  const prefix = torrentioPathPrefix || TORRENTIO_PATH_PREFIX;
-  const url = `${TORRENTIO_BASE}/${prefix}/stream/${type}/${id}.json`;
+async function fetchProviderStreams({ type, id }) {
+  const url = PROVIDER_PATH_PREFIX 
+    ? `${PROVIDER_BASE}/${PROVIDER_PATH_PREFIX}/stream/${type}/${id}.json`
+    : `${PROVIDER_BASE}/stream/${type}/${id}.json`;
 
-  log('fetchTorrentioStreams request', { type, id, url });
+  log('fetchProviderStreams request', { type, id, url });
 
   const { data } = await axios.get(url, {
-    timeout: TORRENTIO_TIMEOUT_MS
+    timeout: PROVIDER_TIMEOUT_MS
   });
 
   if (!data || !Array.isArray(data.streams)) {
-    logWarn('Torrentio responded without a streams array', {
+    logWarn('Provider responded without a streams array', {
       type,
       id
     });
     return [];
   }
 
-  log('fetchTorrentioStreams response', {
+  log('fetchProviderStreams response', {
     type,
     id,
     count: data.streams.length
@@ -127,9 +124,7 @@ function buildPlayProxyUrl({
 }
 
 /**
- * Build a single Stremio stream entry from a Torrentio candidate.
- * This does not talk to TorrServer yet – it only constructs a `/play` URL
- * that the HTTP handler will later translate to a direct TorrServer URL.
+ * Build a single Stremio stream entry from a provider candidate.
  */
 async function buildStremioStreamFromCandidate({
   candidate,
@@ -160,9 +155,6 @@ async function buildStremioStreamFromCandidate({
   const filename =
     (candidate.behaviorHints && candidate.behaviorHints.filename) || '';
 
-  // Torrentio usually provides fileIdx which matches the internal index of
-  // the file within the torrent. We pass this through to `/play` and later
-  // into TorrServer.
   const fileIndex =
     typeof candidate.fileIdx === 'number'
       ? candidate.fileIdx
@@ -170,9 +162,9 @@ async function buildStremioStreamFromCandidate({
         ? Number(candidate.fileIdx)
         : undefined;
 
-  const title = candidate.title || filename || candidate.name || 'Moisa stream';
+  const title = candidate.title || filename || candidate.name || 'realdebrid free stream';
 
-  const name = candidate.name || (filename ? `Moisa • ${filename}` : 'Moisa');
+  const name = candidate.name || (filename ? `realdebrid free • ${filename}` : 'realdebrid free');
 
   const streamUrl = buildPlayProxyUrl({
     selfBase,
@@ -206,7 +198,6 @@ async function buildStremioStreamFromCandidate({
 
 /**
  * Resolve a single play request into a direct TorrServer URL.
- * Called only when the user actually starts playback.
  */
 async function resolvePlayUrl({
   torrServerBase,
@@ -227,11 +218,6 @@ async function resolvePlayUrl({
     (filename && String(filename)) || 'video'
   );
 
-  // TorrServer `/stream` expects a 1-based file index within the torrent.
-  //
-  // Torrentio's `fileIdx` is often reliable for series episodes (multi-file
-  // torrents), but can be incorrect for some movie torrents (where we usually
-  // want the main video file).
   let index = 0;
   if (type === 'movie') {
     index = 1;
@@ -240,7 +226,6 @@ async function resolvePlayUrl({
     fileIndex !== null &&
     !Number.isNaN(Number(fileIndex))
   ) {
-    // Torrentio's fileIdx is 0-based; TorrServer expects 1-based.
     index = Number(fileIndex) + 1;
   }
 
@@ -269,9 +254,6 @@ async function resolvePlayUrl({
 
 builder.defineStreamHandler(async ({ type, id, extra }) => {
   try {
-    // Determine TorrServer base URL:
-    // 1) prefer explicit override from `extra` (?torrserver=... via config)
-    // 2) fall back to explicit environment variable TORRSERVER_URL (or localhost default)
     const torrServerBase =
       (extra && extra.torrserver) || TORRSERVER_URL || null;
 
@@ -280,9 +262,6 @@ builder.defineStreamHandler(async ({ type, id, extra }) => {
       return { streams: [] };
     }
 
-    // Determine the base URL of this addon (used for proxy /play URLs).
-    // Prefer an explicit environment override (e.g. SELF_BASE_URL=https://moisa.fun/api/moisa)
-    // and only fall back to the value forwarded from the HTTP layer.
     const selfBase =
       process.env.SELF_BASE_URL || (extra && extra._base) || null;
 
@@ -293,16 +272,14 @@ builder.defineStreamHandler(async ({ type, id, extra }) => {
       selfBase
     });
 
-    // 1. Ask Torrentio for available torrents. Allow override of the
-    //    quality/path prefix via extra.torrentioPathPrefix (from config).
-    const streams = await fetchTorrentioStreams({
+    // 1. Ask the provider for available torrents.
+    const streams = await fetchProviderStreams({
       type,
-      id,
-      torrentioPathPrefix: extra && extra.torrentioPathPrefix
+      id
     });
 
     if (!streams.length) {
-      logWarn('No streams returned from Torrentio', { type, id });
+      logWarn('No streams returned from provider', { type, id });
       return { streams: [] };
     }
 
@@ -331,11 +308,10 @@ builder.defineStreamHandler(async ({ type, id, extra }) => {
       }
     }
 
-    // 3. Build multiple stream options, one per Torrentio candidate.
+    // 3. Build multiple stream options, one per provider candidate.
     const stremioStreams = (
       await Promise.all(
         streams
-          // Limit to a reasonable number to avoid cluttering the UI.
           .slice(0, 25)
           .map((candidate, index) =>
             buildStremioStreamFromCandidate({
@@ -371,7 +347,6 @@ builder.defineStreamHandler(async ({ type, id, extra }) => {
 
 const addonInterface = builder.getInterface();
 
-// Expose a helper for the HTTP layer to resolve /play requests.
 addonInterface.resolvePlayUrl = resolvePlayUrl;
 
 module.exports = addonInterface;
