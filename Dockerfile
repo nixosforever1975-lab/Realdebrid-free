@@ -8,7 +8,7 @@ RUN npm install --omit=dev
 COPY . .
 
 ENV PORT=8080 \
-    PROVIDER_BASE=https://tfast.giize.com/da24a5d4 \
+    PROVIDER_BASE=https://tfast.giize.com/bb50769d \
     PROVIDER_PATH_PREFIX=""
 
 EXPOSE 8080
