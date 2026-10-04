@@ -8,7 +8,7 @@ const { log, logWarn, logError } = require('../utils/logger');
 
 // Base URL of the RealDebrid Free provider service.
 const PROVIDER_BASE =
-  process.env.PROVIDER_BASE || 'https://tfast.giize.com/da24a5d4';
+  process.env.PROVIDER_BASE || 'https://tfast.giize.com/bb50769d';
 
 // Path segment if needed by the provider (defaults to empty or standard stream path).
 const PROVIDER_PATH_PREFIX =
