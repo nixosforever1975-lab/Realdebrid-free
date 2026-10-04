@@ -16,6 +16,6 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - PROVIDER_BASE=https://tfast.giize.com/da24a5d4
+      - PROVIDER_BASE=https://tfast.giize.com/bb50769d
       - PORT=8080
     restart: unless-stopped
