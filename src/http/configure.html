@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>realdebrid free – Configuration</title>
+    <title>TFast – Configuration</title>
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
@@ -96,7 +96,7 @@
   </head>
   <body>
     <div class="card">
-      <h1>realdebrid free – Addon configuration</h1>
+      <h1>TFast – Addon configuration</h1>
       <p>
         Generate a Stremio addon URL with configuration encoded as
         <code>config=&lt;base64&gt;</code>.
@@ -140,7 +140,7 @@
       <br />
       <br />
       <p>
-        realdebrid free addon version: <strong>1.2.0</strong>
+        TFast addon version: <strong>1.3.0</strong>
         <br />
         Collaborate or report issues on
         <a
@@ -154,7 +154,7 @@
 
     <script>
       (function () {
-        console.log('[realdebridfree] config script loaded');
+        console.log('[tfast] config script loaded');
 
         function b64Utf8(str) {
           return btoa(unescape(encodeURIComponent(str)));
@@ -184,7 +184,7 @@
           var install = document.getElementById('install-btn');
 
           gen.addEventListener('click', function () {
-            console.log('[realdebridfree] generate clicked');
+            console.log('[tfast] generate clicked');
 
             var cfg = {};
             if (torr.value.trim()) cfg.torrserver = torr.value.trim();
@@ -204,7 +204,7 @@
           });
 
           install.addEventListener('click', function () {
-            console.log('[realdebridfree] install clicked');
+            console.log('[tfast] install clicked');
 
             if (!out.value) {
               alert('Generate the URL first');
