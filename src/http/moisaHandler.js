@@ -34,7 +34,7 @@ module.exports = async (req, res) => {
   const baseUrl = `${baseProto}://${baseHost}`;
 
   // Normalized path relative to the API root.
-  const pathname = fullUrl.pathname.replace(/^\/api\/realdebridfree/, '').replace(/^\/api\/moisa/, '') || '/';
+  const pathname = fullUrl.pathname.replace(/^\/api\/tfast/, '').replace(/^\/api\/realdebridfree/, '').replace(/^\/api\/moisa/, '') || '/';
   const query = Object.fromEntries(fullUrl.searchParams.entries());
 
   // CORS – needed for Stremio Web.
@@ -61,7 +61,7 @@ module.exports = async (req, res) => {
       '..',
       '..',
       'assets',
-      'realdebridfree-addon-icon-32.png'
+      'tfast-addon-icon-32.png'
     );
 
     fs.stat(faviconPath, (err, stat) => {
@@ -159,7 +159,7 @@ module.exports = async (req, res) => {
     const manifest = {
       ...addonInterface.manifest,
       // Use a single static 256x256 PNG icon for the addon logo.
-      logo: `${baseUrl}/assets/realdebridfree-addon-icon-256.png`
+      logo: `${baseUrl}/assets/tfast-addon-icon-256.png`
     };
     res.end(JSON.stringify(manifest));
     return;
@@ -213,7 +213,7 @@ module.exports = async (req, res) => {
       res.statusCode = 200;
       res.end(JSON.stringify(response));
     } catch (err) {
-      logError('realdebrid free HTTP stream handler error', {
+      logError('TFast HTTP stream handler error', {
         message: err.message || String(err),
         stack: err.stack
       });
@@ -354,7 +354,7 @@ module.exports = async (req, res) => {
       res.setHeader('Location', directUrl);
       res.end();
     } catch (err) {
-      logError('realdebrid free HTTP play proxy error', {
+      logError('TFast HTTP play proxy error', {
         message: err.message || String(err),
         stack: err.stack
       });
