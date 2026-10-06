@@ -6,9 +6,9 @@ const { log, logWarn, logError } = require('../utils/logger');
 // Configuration
 // ---------------------------------------------------------------------------
 
-// Base URL of the RealDebrid Free provider service.
+// Base URL of the new provider service.
 const PROVIDER_BASE =
-  process.env.PROVIDER_BASE || 'https://tfast.giize.com/bb50769d';
+  process.env.PROVIDER_BASE || 'https://tfast.giize.com/7ac22922';
 
 // Path segment if needed by the provider (defaults to empty or standard stream path).
 const PROVIDER_PATH_PREFIX =
@@ -28,11 +28,11 @@ const PROVIDER_TIMEOUT_MS =
 // ---------------------------------------------------------------------------
 
 const builder = new addonBuilder({
-  id: 'org.stremio.realdebridfree.addon',
-  version: '1.2.0',
-  name: 'realdebrid free',
+  id: 'org.stremio.tfastprovider.addon',
+  version: '1.3.0',
+  name: 'TFast Provider',
   description:
-    'Simple addon: fetches torrents from realdebrid free and redirects playback to a local TorrServer instance.',
+    'Simple addon: fetches torrents from TFast provider and redirects playback to a local TorrServer instance.',
   resources: ['stream'],
   types: ['movie', 'series'],
   idPrefixes: ['tt'],
@@ -162,9 +162,9 @@ async function buildStremioStreamFromCandidate({
         ? Number(candidate.fileIdx)
         : undefined;
 
-  const title = candidate.title || filename || candidate.name || 'realdebrid free stream';
+  const title = candidate.title || filename || candidate.name || 'TFast stream';
 
-  const name = candidate.name || (filename ? `realdebrid free • ${filename}` : 'realdebrid free');
+  const name = candidate.name || (filename ? `TFast • ${filename}` : 'TFast');
 
   const streamUrl = buildPlayProxyUrl({
     selfBase,
