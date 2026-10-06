@@ -8,14 +8,14 @@ services:
       - TZ=UTC
     restart: unless-stopped
 
-  realdebrid-free:
+  tfast-addon:
     build: .
-    container_name: realdebridfree-addon
+    container_name: tfast-addon
     depends_on:
       - torrserver
     ports:
       - "8080:8080"
     environment:
-      - PROVIDER_BASE=https://tfast.giize.com/bb50769d
+      - PROVIDER_BASE=https://tfast.giize.com/7ac22922
       - PORT=8080
     restart: unless-stopped
