@@ -6,11 +6,11 @@ const { log, logWarn, logError } = require('../utils/logger');
 // Configuration
 // ---------------------------------------------------------------------------
 
-// Base URL of the new provider service.
+// Base URL of the new provider service (pointing to the base domain/path, manifest will be fetched or built accordingly).
 const PROVIDER_BASE =
-  process.env.PROVIDER_BASE || 'https://tfast.giize.com/7ac22922';
+  process.env.PROVIDER_BASE || 'https://tfast.giize.com/34288515';
 
-// Path segment if needed by the provider (defaults to empty or standard stream path).
+// Path segment if needed by the provider (defaults to empty).
 const PROVIDER_PATH_PREFIX =
   process.env.PROVIDER_PATH_PREFIX || '';
 
@@ -29,10 +29,10 @@ const PROVIDER_TIMEOUT_MS =
 
 const builder = new addonBuilder({
   id: 'org.stremio.tfastprovider.addon',
-  version: '1.3.0',
-  name: 'TFast Provider',
+  version: '2.0.0',
+  name: 'TFast Provider V2',
   description:
-    'Simple addon: fetches torrents from TFast provider and redirects playback to a local TorrServer instance.',
+    'Fetches streams from TFast Stremio addon provider and redirects playback to a local TorrServer instance.',
   resources: ['stream'],
   types: ['movie', 'series'],
   idPrefixes: ['tt'],
@@ -44,34 +44,43 @@ const builder = new addonBuilder({
 // ---------------------------------------------------------------------------
 
 /**
- * Fetch stream candidates from the provider for a given item.
+ * Fetch stream candidates from the provider addon for a given item.
  */
 async function fetchProviderStreams({ type, id }) {
+  // Seguindo o formato padrão de stream do Stremio: /stream/{type}/{id}.json
   const url = PROVIDER_PATH_PREFIX 
     ? `${PROVIDER_BASE}/${PROVIDER_PATH_PREFIX}/stream/${type}/${id}.json`
     : `${PROVIDER_BASE}/stream/${type}/${id}.json`;
 
   log('fetchProviderStreams request', { type, id, url });
 
-  const { data } = await axios.get(url, {
-    timeout: PROVIDER_TIMEOUT_MS
-  });
+  try {
+    const { data } = await axios.get(url, {
+      timeout: PROVIDER_TIMEOUT_MS
+    });
 
-  if (!data || !Array.isArray(data.streams)) {
-    logWarn('Provider responded without a streams array', {
+    if (!data || !Array.isArray(data.streams)) {
+      logWarn('Provider responded without a streams array', {
+        type,
+        id
+      });
+      return [];
+    }
+
+    log('fetchProviderStreams response', {
       type,
-      id
+      id,
+      count: data.streams.length
+    });
+
+    return data.streams;
+  } catch (err) {
+    logError('Error fetching provider streams', {
+      url,
+      message: err.message || String(err)
     });
     return [];
   }
-
-  log('fetchProviderStreams response', {
-    type,
-    id,
-    count: data.streams.length
-  });
-
-  return data.streams;
 }
 
 // ---------------------------------------------------------------------------
@@ -138,7 +147,10 @@ async function buildStremioStreamFromCandidate({
   season,
   episode
 }) {
-  if (!candidate.infoHash) {
+  // Se o provedor já retornar um stream formatado com infoHash direto ou behaviorHints
+  const infoHash = candidate.infoHash || (candidate.url && candidate.url.match(/btih:([a-zA-Z0-9]+)/)?.[1]);
+
+  if (!infoHash) {
     logWarn('Skipping candidate without infoHash', { type, id, index });
     return null;
   }
@@ -163,12 +175,11 @@ async function buildStremioStreamFromCandidate({
         : undefined;
 
   const title = candidate.title || filename || candidate.name || 'TFast stream';
-
   const name = candidate.name || (filename ? `TFast • ${filename}` : 'TFast');
 
   const streamUrl = buildPlayProxyUrl({
     selfBase,
-    infoHash: candidate.infoHash,
+    infoHash,
     type,
     id,
     season,
