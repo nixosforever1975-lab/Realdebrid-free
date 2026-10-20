@@ -6,9 +6,9 @@ const { log, logWarn, logError } = require('../utils/logger');
 // Configuration
 // ---------------------------------------------------------------------------
 
-// Base URL of the new provider service (pointing to the base domain/path, manifest will be fetched or built accordingly).
+// Base URL of the new provider service
 const PROVIDER_BASE =
-  process.env.PROVIDER_BASE || 'https://tfast.giize.com/34288515';
+  process.env.PROVIDER_BASE || 'https://tfast.giize.com/b27abb86';
 
 // Path segment if needed by the provider (defaults to empty).
 const PROVIDER_PATH_PREFIX =
