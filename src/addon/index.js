@@ -47,7 +47,6 @@ const builder = new addonBuilder({
  * Fetch stream candidates from the provider addon for a given item.
  */
 async function fetchProviderStreams({ type, id }) {
-  // Seguindo o formato padrão de stream do Stremio: /stream/{type}/{id}.json
   const url = PROVIDER_PATH_PREFIX 
     ? `${PROVIDER_BASE}/${PROVIDER_PATH_PREFIX}/stream/${type}/${id}.json`
     : `${PROVIDER_BASE}/stream/${type}/${id}.json`;
@@ -87,10 +86,6 @@ async function fetchProviderStreams({ type, id }) {
 // Play proxy helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Build a URL that points back to this addon, which will then resolve the
- * correct TorrServer file and redirect to it via `/play`.
- */
 function buildPlayProxyUrl({
   selfBase,
   infoHash,
@@ -132,9 +127,6 @@ function buildPlayProxyUrl({
   return `${base}/play?${params.toString()}`;
 }
 
-/**
- * Build a single Stremio stream entry from a provider candidate.
- */
 async function buildStremioStreamFromCandidate({
   candidate,
   index,
@@ -147,7 +139,6 @@ async function buildStremioStreamFromCandidate({
   season,
   episode
 }) {
-  // Se o provedor já retornar um stream formatado com infoHash direto ou behaviorHints
   const infoHash = candidate.infoHash || (candidate.url && candidate.url.match(/btih:([a-zA-Z0-9]+)/)?.[1]);
 
   if (!infoHash) {
@@ -207,9 +198,6 @@ async function buildStremioStreamFromCandidate({
   };
 }
 
-/**
- * Resolve a single play request into a direct TorrServer URL.
- */
 async function resolvePlayUrl({
   torrServerBase,
   type,
@@ -244,18 +232,6 @@ async function resolvePlayUrl({
     infoHash
   )}&index=${index}&play`;
 
-  log('resolvePlayUrl (no TorrServer stat/preload)', {
-    type,
-    id,
-    infoHash,
-    season,
-    episode,
-    requestedFileIndex: fileIndex,
-    resolvedIndex: index,
-    torrServerBase,
-    directUrl
-  });
-
   return directUrl;
 }
 
@@ -276,13 +252,6 @@ builder.defineStreamHandler(async ({ type, id, extra }) => {
     const selfBase =
       process.env.SELF_BASE_URL || (extra && extra._base) || null;
 
-    log('Resolved bases for stream handler', {
-      type,
-      id,
-      torrServerBase,
-      selfBase
-    });
-
     // 1. Ask the provider for available torrents.
     const streams = await fetchProviderStreams({
       type,
@@ -293,6 +262,38 @@ builder.defineStreamHandler(async ({ type, id, extra }) => {
       logWarn('No streams returned from provider', { type, id });
       return { streams: [] };
     }
+
+    // --- ORDENAÇÃO INTELIGENTE (1.º Sementes, 2.º Qualidade) ---
+    streams.sort((a, b) => {
+      const getSeeders = (item) => {
+        const text = (item.title || item.name || '') + ' ' + (item.behaviorHints?.filename || '');
+        const match = text.match(/(\d+)\s*(?:[-–]\s*)?(?:seeds?|peers?|sementes)/i) || text.match(/👤\s*(\d+)/);
+        if (match) return parseInt(match[1], 10);
+        
+        const numbers = text.match(/\b\d{1,4}\b/g);
+        return numbers ? parseInt(numbers[0], 10) : 0;
+      };
+
+      const getQualityScore = (item) => {
+        const text = (item.title || item.name || '').toUpperCase();
+        if (text.includes('4K') || text.includes('2160P')) return 3;
+        if (text.includes('1080P')) return 2;
+        if (text.includes('720P')) return 1;
+        return 0;
+      };
+
+      const seedersA = getSeeders(a);
+      const seedersB = getSeeders(b);
+
+      // Compara primeiro por sementes (maior para menor)
+      if (seedersB !== seedersA) {
+        return seedersB - seedersA;
+      }
+
+      // Desempate por qualidade (maior para menor)
+      return getQualityScore(b) - getQualityScore(a);
+    });
+    // ---------------------------------------------------------
 
     // 2. Extract season/episode info for series (from id and/or extra).
     let season;
@@ -357,7 +358,6 @@ builder.defineStreamHandler(async ({ type, id, extra }) => {
 });
 
 const addonInterface = builder.getInterface();
-
 addonInterface.resolvePlayUrl = resolvePlayUrl;
 
 module.exports = addonInterface;
