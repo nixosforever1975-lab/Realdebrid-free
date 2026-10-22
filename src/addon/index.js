@@ -253,7 +253,7 @@ builder.defineStreamHandler(async ({ type, id, extra }) => {
       process.env.SELF_BASE_URL || (extra && extra._base) || null;
 
     // 1. Ask the provider for available torrents.
-    const streams = await fetchProviderStreams({
+    let streams = await fetchProviderStreams({
       type,
       id
     });
@@ -263,7 +263,19 @@ builder.defineStreamHandler(async ({ type, id, extra }) => {
       return { streams: [] };
     }
 
-    // --- ORDENAÇÃO INTELIGENTE (1.º Sementes, 2.º Qualidade) ---
+    // --- FILTRAR APENAS 4K ---
+    streams = streams.filter((item) => {
+      const text = ((item.title || '') + ' ' + (item.name || '') + ' ' + (item.behaviorHints?.filename || '')).toUpperCase();
+      return text.includes('4K') || text.includes('2160P');
+    });
+
+    if (!streams.length) {
+      logWarn('No 4K streams found after filtering', { type, id });
+      return { streams: [] };
+    }
+    // -------------------------
+
+    // --- ORDENAÇÃO INTELIGENTE (Por Sementes entre os 4K) ---
     streams.sort((a, b) => {
       const getSeeders = (item) => {
         const text = (item.title || item.name || '') + ' ' + (item.behaviorHints?.filename || '');
@@ -274,24 +286,10 @@ builder.defineStreamHandler(async ({ type, id, extra }) => {
         return numbers ? parseInt(numbers[0], 10) : 0;
       };
 
-      const getQualityScore = (item) => {
-        const text = (item.title || item.name || '').toUpperCase();
-        if (text.includes('4K') || text.includes('2160P')) return 3;
-        if (text.includes('1080P')) return 2;
-        if (text.includes('720P')) return 1;
-        return 0;
-      };
-
       const seedersA = getSeeders(a);
       const seedersB = getSeeders(b);
 
-      // Compara primeiro por sementes (maior para menor)
-      if (seedersB !== seedersA) {
-        return seedersB - seedersA;
-      }
-
-      // Desempate por qualidade (maior para menor)
-      return getQualityScore(b) - getQualityScore(a);
+      return seedersB - seedersA; // Mais sementes primeiro
     });
     // ---------------------------------------------------------
 
